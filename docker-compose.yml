@@ -1,0 +1,97 @@
+services:
+  elasticsearch:
+    build:
+      context: "elasticsearch/"
+      args:
+        ELASTIC_VERSION: ${ELASTIC_VERSION}
+    volumes:
+      - type: bind
+        source: ./tls/elasticsearch/elasticsearch.p12
+        target: /usr/share/elasticsearch/config/elasticsearch.p12
+        read_only: true
+      - type: bind
+        source: ./tls/elasticsearch/http.p12
+        target: /usr/share/elasticsearch/config/http.p12
+        read_only: true
+      - type: bind
+        source: "./elasticsearch/config/elasticsearch.yml"
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+        read_only: true
+      - "./elasticsearch/data:/usr/share/elasticsearch/data"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+      ELASTIC_PASSWORD: changeme
+      discovery.type: single-node
+    networks:
+      - elk
+
+  logstash:
+    build:
+      context: "logstash/"
+      args:
+        ELASTIC_VERSION: ${ELASTIC_VERSION}        
+    volumes:
+      - type: bind
+        source: ./tls/kibana/elasticsearch-ca.pem
+        target: /usr/share/logstash/config/elasticsearch-ca.pem
+        read_only: true
+      - type: bind
+        source: "./logstash/config/logstash.yml"
+        target: /usr/share/logstash/config/logstash.yml
+        read_only: true
+      - type: bind
+        source: "./logstash/config/pipelines.yml"
+        target: /usr/share/logstash/config/pipelines.yml
+        read_only: true
+      - type: bind
+        source: "./logstash/pipeline"
+        target: /usr/share/logstash/pipeline
+        read_only: true
+    ports:
+      - "5044:5044"
+      - "5045:5045"
+      - "5001:5001/tcp"
+      - "5001:5001/udp"
+      - "9600:9600"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    build:
+      context: kibana/
+      args:
+        ELASTIC_VERSION: ${ELASTIC_VERSION}
+    volumes:
+      - type: bind
+        source: ./tls/kibana/elasticsearch-ca.pem
+        target: /usr/share/kibana/config/elasticsearch-ca.pem
+        read_only: true
+      - type: bind
+        source: ./tls/kibana/instance.crt
+        target: /usr/share/kibana/config/instance.crt
+        read_only: true
+      - type: bind
+        source: ./tls/kibana/instance.key
+        target: /usr/share/kibana/config/instance.key
+        read_only: true
+      - type: bind
+        source: "./kibana/config/kibana.yml"
+        target: /usr/share/kibana/config/kibana.yml
+        read_only: true
+    ports:
+      - "5601:5601"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+networks:
+  elk:
+    driver: bridge

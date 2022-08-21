@@ -1,0 +1,19 @@
+filebeat.inputs:
+
+- type: filestream
+  enabled: true
+  paths:
+#    - /var/log/*/*.log
+#    - [log path]
+
+setup.template.settings:
+  index.number_of_shards: 1
+
+output.logstash:
+  hosts: ["logstash:5044"]
+  username: elastic
+  password: changeme
+
+monitoring.enabled: false
+# http.enabled: true
+http.host: 0.0.0.0

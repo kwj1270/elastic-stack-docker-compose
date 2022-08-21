@@ -1,0 +1,33 @@
+version: '3.7'
+
+services:
+  filebeat:
+    build:
+      context: ./
+      args:
+        ELASTIC_VERSION: ${ELASTIC_VERSION}
+    user: root
+    command:
+      - -e
+      - --strict.perms=false
+    volumes:
+      - ./config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - type: bind
+        source: /var/lib/docker/containers
+        target: /var/lib/docker/containers
+        read_only: true
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        read_only: true
+#      - type: bind
+#        source: [host path]
+#        target: [container path]
+#        read_only: true
+    environment:
+      ELASTIC_PASSWORD: changeme
+    networks:
+      - elastic-docker_elk
+networks:
+  elastic-docker_elk:
+    external: true
